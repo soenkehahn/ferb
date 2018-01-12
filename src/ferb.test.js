@@ -5,7 +5,9 @@ import { writeFileSync } from "fs";
 import temporary from "temporary";
 
 type Outcome = {
-  stdout: string
+  stdout: string,
+  stderr: string,
+  exitCode: number
 };
 
 function withTempDir<A>(action: string => A): A {
@@ -28,13 +30,16 @@ function run(program: string): Outcome {
     if (process.env["PATH"]) {
       process.env["PATH"] = ferbPath + ":" + process.env["PATH"];
     }
-    const result = execSync("./" + file, {
+    const result = spawnSync("./" + file, [], {
       cwd: tempDir,
       env: process.env
     });
-    const stdout = result.toString();
+    const stdout = result.stdout.toString();
+    const stderr = result.stderr.toString();
     return {
-      stdout: stdout
+      stdout: stdout,
+      stderr: stderr,
+      exitCode: result.status
     };
   });
 }
@@ -45,5 +50,26 @@ describe("ferb executable", () => {
 console.log('hello world');
     `);
     expect(outcome.stdout).toBe("hello world\n");
+  });
+
+  it("returns a zero exit code", () => {
+    const outcome = run(`#!/usr/bin/env ferb
+console.log('hello world');
+    `);
+    expect(outcome.exitCode).toBe(0);
+  });
+
+  it("returns a non-zero exit code when throwing an exception", () => {
+    const outcome = run(`#!/usr/bin/env ferb
+throw new Error('foo');
+    `);
+    expect(outcome.exitCode).toBe(1);
+  });
+
+  it("includes strings written to stderr in stderr output", () => {
+    const outcome = run(`#!/usr/bin/env ferb
+console.error('error output');
+    `);
+    expect(outcome.stderr).toContain("error output\n");
   });
 });
