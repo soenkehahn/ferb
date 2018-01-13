@@ -8,4 +8,4 @@ else
   PREFIX="$1"
 fi
 
-cp dist/bin/ferb "$PREFIX"/bin/
+cp dist/bin/jsi "$PREFIX"/bin/
