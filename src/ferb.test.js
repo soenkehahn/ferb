@@ -93,12 +93,26 @@ console.log('foo');
     it("outputs the type error to stderr", () => {
       const outcome = run(`#!/usr/bin/env ferb
 const x: string = 42;
-console.log('foo');
       `);
       expect(outcome.stderr).toContain(
         "number. This type is incompatible with"
       );
       expect(outcome.stderr).toContain("string");
+    });
+
+    it("exits with a non-zero exit code", () => {
+      const outcome = run(`#!/usr/bin/env ferb
+const x: string = 42;
+      `);
+      expect(outcome.exitCode).toBe(2);
+    });
+
+    it("does not run the script", () => {
+      const outcome = run(`#!/usr/bin/env ferb
+const x: string = 42;
+console.log('foo');
+      `);
+      expect(outcome.stdout).not.toBe("foo\n");
     });
   });
 });
