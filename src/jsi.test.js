@@ -115,7 +115,7 @@ const x: string = 42;
         const outcome = run(`#!/usr/bin/env jsi
 const x: string = 42;
       `);
-        expect(outcome.exitCode).toBe(2);
+        expect(outcome.exitCode).not.toBe(0);
       });
 
       it("does not run the script", () => {
