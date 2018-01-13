@@ -44,6 +44,12 @@ function run(program: string): Outcome {
   });
 }
 
+beforeEach(() => {
+  if (process.env['CLEAR_CACHE']) {
+    execSync('rm ~/.ferb -rf');
+  }
+})
+
 describe("ferb executable", () => {
   it("allows to run a hello-world program", () => {
     const outcome = run(`#!/usr/bin/env ferb

@@ -3,7 +3,7 @@
 mkdir -p ~/.ferb/project
 
 if [ ! -f ~/.ferb/project/node_modules/.bin/babel-node ]; then
-  (cd ~/.ferb/project; yarn add babel-cli babel-plugin-transform-flow-strip-types)
+  (cd ~/.ferb/project; yarn add babel-cli babel-plugin-transform-flow-strip-types) 1>&2
 fi
 
 export NODE_PATH=~/.ferb/project/node_modules
