@@ -80,49 +80,61 @@ console.error('error output');
     expect(outcome.stderr).toContain("error output\n");
   });
 
-  it("allows type annotations", () => {
-    const outcome = run(`#!/usr/bin/env ferb
+  describe("flow", () => {
+    it("allows type annotations", () => {
+      const outcome = run(`#!/usr/bin/env ferb
 const x: number = 42;
 console.log('foo');
     `);
-    expect(outcome.exitCode).toBe(0);
-    expect(outcome.stdout).toBe("foo\n");
-  });
-
-  xit("does not output anything to stderr when cache is warm", () => {
-    run(`#!/usr/bin/env ferb
-  console.error('error output');
-      `);
-    const outcome = run(`#!/usr/bin/env ferb
-  console.error('error output');
-      `);
-    expect(outcome.stderr).toBe("error output\n");
-  });
-
-  describe("when there's type errors", () => {
-    it("outputs the type error to stderr", () => {
-      const outcome = run(`#!/usr/bin/env ferb
-const x: string = 42;
-      `);
-      expect(outcome.stderr).toContain(
-        "number. This type is incompatible with"
-      );
-      expect(outcome.stderr).toContain("string");
+      expect(outcome.exitCode).toBe(0);
+      expect(outcome.stdout).toBe("foo\n");
     });
 
-    it("exits with a non-zero exit code", () => {
-      const outcome = run(`#!/usr/bin/env ferb
-const x: string = 42;
+    xit("does not output anything to stderr when cache is warm", () => {
+      run(`#!/usr/bin/env ferb
+  console.error('error output');
       `);
-      expect(outcome.exitCode).toBe(2);
+      const outcome = run(`#!/usr/bin/env ferb
+  console.error('error output');
+      `);
+      expect(outcome.stderr).toBe("error output\n");
     });
 
-    it("does not run the script", () => {
-      const outcome = run(`#!/usr/bin/env ferb
+    describe("when there's type errors", () => {
+      it("outputs the type error to stderr", () => {
+        const outcome = run(`#!/usr/bin/env ferb
+const x: string = 42;
+      `);
+        expect(outcome.stderr).toContain(
+          "number. This type is incompatible with"
+        );
+        expect(outcome.stderr).toContain("string");
+      });
+
+      it("exits with a non-zero exit code", () => {
+        const outcome = run(`#!/usr/bin/env ferb
+const x: string = 42;
+      `);
+        expect(outcome.exitCode).toBe(2);
+      });
+
+      it("does not run the script", () => {
+        const outcome = run(`#!/usr/bin/env ferb
 const x: string = 42;
 console.log('foo');
       `);
-      expect(outcome.stdout).not.toBe("foo\n");
+        expect(outcome.stdout).not.toBe("foo\n");
+      });
+    });
+  });
+
+  describe("babel", () => {
+    it("allows import statements", () => {
+      const outcome = run(`#!/usr/bin/env ferb
+import { execSync } from 'child_process';
+console.log(execSync('echo foo').toString());
+      `);
+      expect(outcome.stdout).toBe("foo\n\n");
     });
   });
 });

@@ -16,10 +16,15 @@ if [ ! -f ~/.ferb/project/.flowconfig ]; then
   (cd ~/.ferb/project; flow init) 1>&2
 fi
 
+if [ ! -d ~/.ferb/project/node_modules/babel-preset-env ]; then
+  (cd ~/.ferb/project; yarn add babel-preset-env) 1>&2
+fi
+
 export NODE_PATH=~/.ferb/project/node_modules
 
 cat $@ | (cd ~/.ferb/project; ./node_modules/.bin/flow check-contents --quiet) 1>&2
 
 ~/.ferb/project/node_modules/.bin/babel-node \
   --plugins 'transform-flow-strip-types' \
+  --presets 'env' \
   $@
