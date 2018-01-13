@@ -72,4 +72,13 @@ console.error('error output');
     `);
     expect(outcome.stderr).toContain("error output\n");
   });
+
+  it("allows type annotations", () => {
+    const outcome = run(`#!/usr/bin/env ferb
+const x: number = 42;
+console.log('foo');
+    `);
+    expect(outcome.exitCode).toBe(0);
+    expect(outcome.stdout).toBe("foo\n");
+  });
 });
