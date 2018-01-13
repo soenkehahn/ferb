@@ -45,10 +45,11 @@ function run(program: string): Outcome {
 }
 
 beforeEach(() => {
-  if (process.env['CLEAR_CACHE']) {
-    execSync('rm ~/.ferb -rf');
+  if (process.env["CLEAR_CACHE"]) {
+    spawnSync("flow stop", { cwd: "~/.ferb/project" });
+    execSync("rm ~/.ferb -rf");
   }
-})
+});
 
 describe("ferb executable", () => {
   it("allows to run a hello-world program", () => {
@@ -86,5 +87,18 @@ console.log('foo');
     `);
     expect(outcome.exitCode).toBe(0);
     expect(outcome.stdout).toBe("foo\n");
+  });
+
+  describe("when there's type errors", () => {
+    it("outputs the type error to stderr", () => {
+      const outcome = run(`#!/usr/bin/env ferb
+const x: string = 42;
+console.log('foo');
+      `);
+      expect(outcome.stderr).toContain(
+        "number. This type is incompatible with"
+      );
+      expect(outcome.stderr).toContain("string");
+    });
   });
 });
