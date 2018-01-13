@@ -89,6 +89,16 @@ console.log('foo');
     expect(outcome.stdout).toBe("foo\n");
   });
 
+  xit("does not output anything to stderr when cache is warm", () => {
+    run(`#!/usr/bin/env ferb
+  console.error('error output');
+      `);
+    const outcome = run(`#!/usr/bin/env ferb
+  console.error('error output');
+      `);
+    expect(outcome.stderr).toBe("error output\n");
+  });
+
   describe("when there's type errors", () => {
     it("outputs the type error to stderr", () => {
       const outcome = run(`#!/usr/bin/env ferb
