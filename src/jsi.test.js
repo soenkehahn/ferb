@@ -30,19 +30,23 @@ function run(program: string): Outcome {
     if (process.env["PATH"]) {
       process.env["PATH"] = jsiPath + ":" + process.env["PATH"];
     }
-    const result = spawnSync("./" + file, [], {
+    const result = spawnSync("jsi", ["./" + file], {
       cwd: tempDir,
       env: process.env
     });
-    const stdout = result.stdout.toString();
-    const stderr = result.stderr.toString();
-    return {
-      stdout: stdout,
-      stderr: stderr,
+    const output = {
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
       exitCode: result.status
     };
+    console.error(output);
+    return output;
   });
 }
+
+beforeAll(() => {
+  execSync("./build.sh");
+});
 
 beforeEach(() => {
   if (process.env["CLEAR_CACHE"]) {

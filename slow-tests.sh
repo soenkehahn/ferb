@@ -3,4 +3,4 @@
 set -o errexit
 
 export CLEAR_CACHE=true
-yarn jest --runInBand
+yarn jest --runInBand --silent

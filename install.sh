@@ -2,6 +2,8 @@
 
 set -o errexit
 
+./build.sh
+
 if [ -z "$1" ]; then
   PREFIX=/usr/local
 else

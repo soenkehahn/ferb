@@ -5,6 +5,7 @@ jobs:
       - image: node:8.2.1
     steps:
       - checkout
+      - run: apt update && apt install --yes golang-go
       - run: yarn install
       - run: yarn flow
       - run: ./slow-tests.sh
