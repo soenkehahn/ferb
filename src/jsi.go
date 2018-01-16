@@ -7,6 +7,7 @@ import "os/exec"
 import "os/user"
 import "bytes"
 import "strings"
+import "syscall"
 
 func getHomeDir() string {
 	usr, err := user.Current()
@@ -95,7 +96,15 @@ func runFlow(file string) {
 	os.Stderr.WriteString(stdout.String())
 	os.Stderr.WriteString(stderr.String())
 	if err != nil {
-		log.Fatal(err)
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				os.Exit(status.ExitStatus())
+			} else {
+				log.Fatal(exitErr)
+			}
+		} else {
+			log.Fatal(exitErr)
+		}
 	}
 }
 

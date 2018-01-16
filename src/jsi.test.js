@@ -115,11 +115,11 @@ const x: string = 42;
         expect(outcome.stderr).toContain("string");
       });
 
-      it("exits with a non-zero exit code", () => {
+      it("relays flow's exit code", () => {
         const outcome = run(`#!/usr/bin/env jsi
 const x: string = 42;
       `);
-        expect(outcome.exitCode).not.toBe(0);
+        expect(outcome.exitCode).toBe(2);
       });
 
       it("does not run the script", () => {
