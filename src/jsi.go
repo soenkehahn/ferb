@@ -79,6 +79,20 @@ func readFile(file string) string {
 	return string(handle)
 }
 
+func handleErrorCode(err error) {
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				os.Exit(status.ExitStatus())
+			} else {
+				log.Fatal(exitErr)
+			}
+		} else {
+			log.Fatal(exitErr)
+		}
+	}
+}
+
 func runFlow(file string) {
 	homeDir := getHomeDir()
 	flowCommand := exec.Command(
@@ -95,17 +109,7 @@ func runFlow(file string) {
 	err := flowCommand.Run()
 	os.Stderr.WriteString(stdout.String())
 	os.Stderr.WriteString(stderr.String())
-	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
-			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				os.Exit(status.ExitStatus())
-			} else {
-				log.Fatal(exitErr)
-			}
-		} else {
-			log.Fatal(exitErr)
-		}
-	}
+	handleErrorCode(err)
 }
 
 func runBabelNode() {
@@ -123,7 +127,5 @@ func runBabelNode() {
 	err := command.Run()
 	os.Stdout.WriteString(stdout.String())
 	os.Stderr.WriteString(stderr.String())
-	if err != nil {
-		log.Fatal(err)
-	}
+	handleErrorCode(err)
 }

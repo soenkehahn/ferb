@@ -77,6 +77,13 @@ throw new Error('foo');
     expect(outcome.exitCode).toBe(1);
   });
 
+  it("relays the correct exit code from the script", () => {
+    const outcome = run(`#!/usr/bin/env jsi
+process.exit(42);
+    `);
+    expect(outcome.exitCode).toBe(42);
+  });
+
   it("includes strings written to stderr in stderr output", () => {
     const outcome = run(`#!/usr/bin/env jsi
 console.error('error output');
