@@ -101,7 +101,7 @@ console.log('foo');
       expect(outcome.stdout).toBe("foo\n");
     });
 
-    xit("does not output anything to stderr when cache is warm", () => {
+    it("does not output anything to stderr when cache is warm", () => {
       run(`#!/usr/bin/env jsi
   console.error('error output');
       `);

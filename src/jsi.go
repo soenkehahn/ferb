@@ -79,10 +79,13 @@ func readFile(file string) string {
 	return string(handle)
 }
 
-func handleErrorCode(err error) {
+type onError func()
+
+func handleErrorCode(err error, onError onError) {
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+				onError()
 				os.Exit(status.ExitStatus())
 			} else {
 				log.Fatal(exitErr)
@@ -107,9 +110,10 @@ func runFlow(file string) {
 	var stderr bytes.Buffer
 	flowCommand.Stderr = &stderr
 	err := flowCommand.Run()
-	os.Stderr.WriteString(stdout.String())
-	os.Stderr.WriteString(stderr.String())
-	handleErrorCode(err)
+	handleErrorCode(err, func() {
+		os.Stderr.WriteString(stdout.String())
+		os.Stderr.WriteString(stderr.String())
+	})
 }
 
 func runBabelNode() {
@@ -127,5 +131,5 @@ func runBabelNode() {
 	err := command.Run()
 	os.Stdout.WriteString(stdout.String())
 	os.Stderr.WriteString(stderr.String())
-	handleErrorCode(err)
+	handleErrorCode(err, func() {})
 }
