@@ -9,3 +9,4 @@ fi
 
 mkdir -p dist/bin
 go build -o dist/bin/jsi src/jsi.go
+echo compiled jsi

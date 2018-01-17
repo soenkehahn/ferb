@@ -2,10 +2,13 @@ version: 2
 jobs:
   build:
     docker:
-      - image: node:8.2.1
+      - image: golang:1.8.5-jessie
     steps:
       - checkout
-      - run: apt update && apt install --yes golang-go
+      - run: apt-get update && apt-get install --yes npm
+      - run: npm install -g n yarn
+      - run: n latest
       - run: yarn install
       - run: yarn flow
+      - run: ./build.sh
       - run: ./slow-tests.sh
