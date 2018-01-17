@@ -55,19 +55,19 @@ func runInProject(installCommand *exec.Cmd) {
 }
 
 func setupProject() {
-	if !doesExistInHome(".jsi/project/node_modules/.bin/babel-node") {
+	runSetup := false
+	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/babel-node"))
+	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/flow"))
+	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/babel-preset-env"))
+	if runSetup {
 		runInProject(exec.Command("yarn", "add",
 			"babel-cli",
+			"flow-bin",
+			"babel-preset-env",
 			"babel-plugin-transform-flow-strip-types"))
-	}
-	if !doesExistInHome(".jsi/project/node_modules/.bin/flow") {
-		runInProject(exec.Command("yarn", "add", "flow-bin"))
 	}
 	if !doesExistInHome(".jsi/project/.flowconfig") {
 		runInProject(exec.Command("node_modules/.bin/flow", "init"))
-	}
-	if !doesExistInHome(".jsi/project/node_modules/babel-preset-env") {
-		runInProject(exec.Command("yarn", "add", "babel-preset-env"))
 	}
 }
 
