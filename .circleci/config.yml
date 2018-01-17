@@ -5,7 +5,7 @@ jobs:
       - image: golang:1.8.5-jessie
     steps:
       - checkout
-      - run: apt-get update && apt-get install --yes npm
+      - run: apt-get update && apt-get install --yes npm upx-ucl
       - run: npm install -g n yarn
       - run: n latest
       - run: yarn install

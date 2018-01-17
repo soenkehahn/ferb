@@ -10,7 +10,7 @@ console.log(x);
 
 ## How to install
 
-You need `go`. Then run
+You need `go` and `upx`. Then run
 
 `./install.sh $PREFIX`
 
