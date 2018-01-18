@@ -16,7 +16,7 @@ You need `go` and `upx`. Then run
 
 This will put the `jsi` executable into `$PREFIX/bin/`. (Default for `$PREFIX` is `/usr/local`.)
 
-To actually run `jsi` you need `node` and `yarn`.
+To actually run `jsi` to execute scripts, you need have `node` and `yarn` installed.
 
 ## How to run the tests
 
