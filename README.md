@@ -1,5 +1,5 @@
 `jsi` is an interpreter for modern, babel-transpiled, flow-type-checked
-javascript. Here's an example `jsi`:
+javascript. Here's an example for how `jsi` can be used:
 
 ```js
 #!/usr/bin/env jsi
