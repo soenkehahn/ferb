@@ -118,11 +118,13 @@ func runFlow(file string) {
 
 func runBabelNode() {
 	homeDir := getHomeDir()
+	args := []string{}
+	args = append(args, "--plugins", "transform-flow-strip-types")
+	args = append(args, "--presets", "env")
+	args = append(args, os.Args[1])
 	command := exec.Command(
 		homeDir+"/.jsi/project/node_modules/.bin/babel-node",
-		"--plugins", "transform-flow-strip-types",
-		"--presets", "env",
-		os.Args[1])
+		args...)
 	command.Env = append(os.Environ(), "NODE_PATH="+homeDir+"/.jsi/project/node_modules")
 	var stdout bytes.Buffer
 	command.Stdout = &stdout
