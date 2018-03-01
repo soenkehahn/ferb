@@ -117,7 +117,7 @@ console.log('foo');
 const x: string = 42;
       `);
         expect(outcome.stderr).toContain(
-          "number. This type is incompatible with"
+          "Cannot assign `42` to `x` because number [1] is incompatible with string [2]."
         );
         expect(outcome.stderr).toContain("string");
       });
