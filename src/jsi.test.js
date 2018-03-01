@@ -98,28 +98,28 @@ console.error('error output');
       const outcome = run(
         `#!/usr/bin/env jsi
 const arg = process.argv.splice(2)[0];
-console.error(arg);
+console.log(arg);
     `,
         ["foo"]
       );
-      expect(outcome.stderr).toBe("foo\n");
+      expect(outcome.stdout).toBe("foo\n");
     });
     it("passes in multiple command line arguments", () => {
       const args = Array.from(Array(10).keys()).map(n => `n=${n}`);
       const outcome = run(
         `#!/usr/bin/env jsi
 const arg = process.argv.splice(2);
-console.error(arg.join(' '));
+console.log(arg.join(' '));
     `,
         args
       );
-      expect(outcome.stderr).toBe(args.join(" ") + "\n");
+      expect(outcome.stdout).toBe(args.join(" ") + "\n");
     });
     it("passes in the absolute path to the script file as the second argument", () => {
       const outcome = run(`#!/usr/bin/env jsi
-console.error(process.argv[1]);
+console.log(process.argv[1]);
     `);
-      expect(outcome.stderr).toBe(outcome.scriptFile + "\n");
+      expect(outcome.stdout).toBe(outcome.scriptFile + "\n");
     });
   });
 
