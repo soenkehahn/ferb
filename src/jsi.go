@@ -121,7 +121,7 @@ func runBabelNode() {
 	args := []string{}
 	args = append(args, "--plugins", "transform-flow-strip-types")
 	args = append(args, "--presets", "env")
-	args = append(args, os.Args[1])
+	args = append(args, os.Args[1:]...)
 	command := exec.Command(
 		homeDir+"/.jsi/project/node_modules/.bin/babel-node",
 		args...)

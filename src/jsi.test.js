@@ -4,11 +4,12 @@ import { execSync, spawnSync } from "child_process";
 import { writeFileSync } from "fs";
 import temporary from "temporary";
 
-type Outcome = {
+type Outcome = {|
   stdout: string,
   stderr: string,
-  exitCode: number
-};
+  exitCode: number,
+  scriptFile: string
+|};
 
 function withTempDir<A>(action: string => A): A {
   const tempDir = new temporary.Dir();
@@ -21,25 +22,26 @@ function withTempDir<A>(action: string => A): A {
   return a;
 }
 
-function run(program: string): Outcome {
+function run(program: string, args: Array<string> = []): Outcome {
   return withTempDir(tempDir => {
     const file = "test_foo.js";
-    writeFileSync(tempDir + "/" + file, program);
+    const absoluteFile = tempDir + "/" + file;
+    writeFileSync(absoluteFile, program);
     execSync("chmod +x " + file, { cwd: tempDir });
     const jsiPath = process.cwd() + "/dist/bin";
     if (process.env["PATH"]) {
       process.env["PATH"] = jsiPath + ":" + process.env["PATH"];
     }
-    const result = spawnSync("jsi", ["./" + file], {
+    const result = spawnSync("jsi", ["./" + file].concat(args), {
       cwd: tempDir,
       env: process.env
     });
     const output = {
       stdout: result.stdout.toString(),
       stderr: result.stderr.toString(),
-      exitCode: result.status
+      exitCode: result.status,
+      scriptFile: absoluteFile
     };
-    console.error(output);
     return output;
   });
 }
@@ -89,6 +91,36 @@ process.exit(42);
 console.error('error output');
     `);
     expect(outcome.stderr).toContain("error output\n");
+  });
+
+  describe("command line arguments", () => {
+    it("passes in a command line argument", () => {
+      const outcome = run(
+        `#!/usr/bin/env jsi
+const arg = process.argv.splice(2)[0];
+console.error(arg);
+    `,
+        ["foo"]
+      );
+      expect(outcome.stderr).toBe("foo\n");
+    });
+    it("passes in multiple command line arguments", () => {
+      const args = Array.from(Array(10).keys()).map(n => `n=${n}`);
+      const outcome = run(
+        `#!/usr/bin/env jsi
+const arg = process.argv.splice(2);
+console.error(arg.join(' '));
+    `,
+        args
+      );
+      expect(outcome.stderr).toBe(args.join(" ") + "\n");
+    });
+    it("passes in the absolute path to the script file as the second argument", () => {
+      const outcome = run(`#!/usr/bin/env jsi
+console.error(process.argv[1]);
+    `);
+      expect(outcome.stderr).toBe(outcome.scriptFile + "\n");
+    });
   });
 
   describe("flow", () => {
