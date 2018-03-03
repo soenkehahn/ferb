@@ -5,4 +5,4 @@ ADD ./src/ /root/jsi/src/
 ADD ./build/ /root/jsi/build/
 
 WORKDIR /root/jsi
-CMD ./build/build.sh && cat ./dist/bin/jsi
+CMD ./build/build.sh && tar cvf dist.tar dist 1>&2 && cat ./dist.tar

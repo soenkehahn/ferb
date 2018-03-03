@@ -3,9 +3,9 @@
 set -o errexit
 
 docker build --tag jsi-builder --file build/Dockerfile .
-mkdir -p dist/bin
-docker run --rm jsi-builder > dist/bin/jsi
-chmod +x dist/bin/jsi
+docker run --rm jsi-builder > dist.tar
+rm -rf dist
+tar xvf dist.tar
 
 if [ -z "$1" ]; then
   PREFIX=/usr/local
