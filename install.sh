@@ -3,7 +3,8 @@
 set -o errexit
 
 docker build --tag jsi-builder --file build/Dockerfile .
-docker run --rm jsi-builder > dist.tar
+INSTALL_GOOS=$(uname | awk '{print tolower($0)}')
+docker run --rm --env INSTALL_GOOS=$INSTALL_GOOS jsi-builder > dist.tar
 rm -rf dist
 tar xvf dist.tar
 
