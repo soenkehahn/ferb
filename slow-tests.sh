@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -o errexit
+set -eux
 
 export CLEAR_CACHE=true
-yarn jest --runInBand --silent
+yarn jest --runInBand

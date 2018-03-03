@@ -1,8 +1,55 @@
 // @flow
 
-import { execSync, spawnSync } from "child_process";
-import { writeFileSync } from "fs";
-import temporary from "temporary";
+import { execSync, spawn, spawnSync, type ChildProcess } from "child_process";
+import { readFileSync, writeFileSync } from "fs";
+import tmp from "tmp";
+
+function syncStream(stream: stream$Readable): Promise<string> {
+  return new Promise(resolve => {
+    let result: string = "";
+    stream.on("data", data => {
+      result += data;
+    });
+    stream.on("end", () => {
+      resolve(result);
+    });
+  });
+}
+
+function syncExitCode(command: ChildProcess): Promise<number> {
+  return new Promise(resolve => {
+    command.on("exit", (exitCode, signal) => {
+      resolve(exitCode);
+    });
+  });
+}
+
+type ProcessPromises = {|
+  stdout: Promise<string>,
+  stderr: Promise<string>,
+  exitCode: Promise<number>,
+  scriptFile: string
+|};
+
+function runAsync(
+  tempDir: string,
+  program: string,
+  args: Array<string> = []
+): { process: ChildProcess, scriptFile: string } {
+  const file = "test_foo.js";
+  const absoluteFile = tempDir + "/" + file;
+  writeFileSync(absoluteFile, program);
+  execSync("chmod +x " + file, { cwd: tempDir });
+  const jsiPath = process.cwd() + "/dist/bin";
+  if (process.env["PATH"]) {
+    process.env["PATH"] = jsiPath + ":" + process.env["PATH"];
+  }
+  const jsiProcess = spawn("jsi", ["./" + file].concat(args), {
+    cwd: tempDir,
+    env: process.env
+  });
+  return { process: jsiProcess, scriptFile: absoluteFile };
+}
 
 type Outcome = {|
   stdout: string,
@@ -11,40 +58,24 @@ type Outcome = {|
   scriptFile: string
 |};
 
-function withTempDir<A>(action: string => A): A {
-  const tempDir = new temporary.Dir();
-  let a;
-  try {
-    a = action(tempDir.path);
-  } finally {
-    execSync("rm *", { cwd: tempDir.path });
-  }
-  return a;
+async function runSync(
+  tempDir: string,
+  program: string,
+  args: Array<string> = []
+): Promise<Outcome> {
+  const jsiProcess = runAsync(tempDir, program, args);
+  const stdoutPromise = syncStream(jsiProcess.process.stdout);
+  const stderrPromise = syncStream(jsiProcess.process.stderr);
+  const exitCodePromise = syncExitCode(jsiProcess.process);
+  return {
+    stdout: await stdoutPromise,
+    stderr: await stderrPromise,
+    exitCode: await exitCodePromise,
+    scriptFile: jsiProcess.scriptFile
+  };
 }
 
-function run(program: string, args: Array<string> = []): Outcome {
-  return withTempDir(tempDir => {
-    const file = "test_foo.js";
-    const absoluteFile = tempDir + "/" + file;
-    writeFileSync(absoluteFile, program);
-    execSync("chmod +x " + file, { cwd: tempDir });
-    const jsiPath = process.cwd() + "/dist/bin";
-    if (process.env["PATH"]) {
-      process.env["PATH"] = jsiPath + ":" + process.env["PATH"];
-    }
-    const result = spawnSync("jsi", ["./" + file].concat(args), {
-      cwd: tempDir,
-      env: process.env
-    });
-    const output = {
-      stdout: result.stdout.toString(),
-      stderr: result.stderr.toString(),
-      exitCode: result.status,
-      scriptFile: absoluteFile
-    };
-    return output;
-  });
-}
+jest.setTimeout(40000);
 
 beforeAll(() => {
   execSync("./build.sh");
@@ -53,49 +84,99 @@ beforeAll(() => {
 beforeEach(() => {
   if (process.env["CLEAR_CACHE"]) {
     spawnSync("flow stop", { cwd: "~/.jsi/project" });
-    execSync("rm ~/.jsi -rf");
+    execSync("rm -rf ~/.jsi/project/node_modules/*");
+    execSync("rm -rf ~/.jsi");
   }
 });
 
+let tempDirObject;
+let testTempDir: string;
+beforeEach(() => {
+  tempDirObject = tmp.dirSync();
+  testTempDir = tempDirObject.name;
+});
+
+afterEach(() => {
+  execSync(`rm -rf ${tempDirObject.name}/*`, { cwd: "/tmp/" });
+  tempDirObject.removeCallback();
+});
+
 describe("jsi executable", () => {
-  it("allows to run a hello-world program", () => {
-    const outcome = run(`#!/usr/bin/env jsi
+  it("allows to run a hello-world program", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
 console.log('hello world');
-    `);
+    `
+    );
     expect(outcome.stdout).toBe("hello world\n");
   });
 
-  it("returns a zero exit code", () => {
-    const outcome = run(`#!/usr/bin/env jsi
+  it("returns a zero exit code", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
 console.log('hello world');
-    `);
+    `
+    );
     expect(outcome.exitCode).toBe(0);
   });
 
-  it("returns a non-zero exit code when throwing an exception", () => {
-    const outcome = run(`#!/usr/bin/env jsi
+  it("returns a non-zero exit code when throwing an exception", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
 throw new Error('foo');
-    `);
+    `
+    );
     expect(outcome.exitCode).toBe(1);
   });
 
-  it("relays the correct exit code from the script", () => {
-    const outcome = run(`#!/usr/bin/env jsi
+  it("relays the correct exit code from the script", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
 process.exit(42);
-    `);
+    `
+    );
     expect(outcome.exitCode).toBe(42);
   });
 
-  it("includes strings written to stderr in stderr output", () => {
-    const outcome = run(`#!/usr/bin/env jsi
+  it("includes strings written to stderr in stderr output", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
 console.error('error output');
-    `);
+    `
+    );
     expect(outcome.stderr).toContain("error output\n");
   });
 
+  it("relays stdin to the executed script", async () => {
+    const jsiProcess = runAsync(
+      testTempDir,
+      `#!/usr/bin/env jsi
+new Promise(resolve => {
+  process.stdin.on("data", data => {
+    console.log(data.toString());
+  })
+  process.stdin.on("end", () => {
+    resolve();
+  })
+})`
+    );
+    jsiProcess.process.stderr.on("data", data =>
+      console.error(data.toString())
+    );
+    jsiProcess.process.stdin.write("input");
+    jsiProcess.process.stdin.end();
+    expect(await syncStream(jsiProcess.process.stdout)).toBe("input\n");
+  });
+
   describe("command line arguments", () => {
-    it("passes in a command line argument", () => {
-      const outcome = run(
+    it("passes in a command line argument", async () => {
+      const outcome = await runSync(
+        testTempDir,
         `#!/usr/bin/env jsi
 const arg = process.argv.splice(2)[0];
 console.log(arg);
@@ -104,9 +185,11 @@ console.log(arg);
       );
       expect(outcome.stdout).toBe("foo\n");
     });
-    it("passes in multiple command line arguments", () => {
+
+    it("passes in multiple command line arguments", async () => {
       const args = Array.from(Array(10).keys()).map(n => `n=${n}`);
-      const outcome = run(
+      const outcome = await runSync(
+        testTempDir,
         `#!/usr/bin/env jsi
 const arg = process.argv.splice(2);
 console.log(arg.join(' '));
@@ -115,68 +198,161 @@ console.log(arg.join(' '));
       );
       expect(outcome.stdout).toBe(args.join(" ") + "\n");
     });
-    it("passes in the absolute path to the script file as the second argument", () => {
-      const outcome = run(`#!/usr/bin/env jsi
+
+    it("passes in the absolute path to the script file as the second argument", async () => {
+      const outcome = await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
 console.log(process.argv[1]);
-    `);
+    `
+      );
       expect(outcome.stdout).toBe(outcome.scriptFile + "\n");
     });
   });
 
+  describe("streaming", () => {
+    function getChunk(stream: stream$Readable): Promise<string> {
+      return new Promise(resolve => {
+        stream.on("data", data => {
+          resolve(data.toString());
+        });
+      });
+    }
+
+    let unblockFile;
+    beforeEach(() => {
+      unblockFile = testTempDir + "/unblock";
+      process.env["UNBLOCK_FILE"] = unblockFile;
+    });
+
+    afterEach(() => {
+      delete process.env["UNBLOCK_FILE"];
+    });
+
+    function runFileAsync(file) {
+      return runAsync(testTempDir, readFileSync(file).toString());
+    }
+
+    async function warmCache() {
+      await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
+console.log('hello world');
+    `
+      );
+    }
+
+    it("writes to stdout lazily", async () => {
+      const jsiProcess = runFileAsync("test-scripts/blockingWithStdout.js");
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("starting\n");
+      writeFileSync(unblockFile, "");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("stopping\n");
+    });
+
+    it("writes to stderr lazily", async () => {
+      await warmCache();
+      const jsiProcess = runFileAsync("test-scripts/blockingWithStderr.js");
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      expect(await getChunk(jsiProcess.process.stderr)).toBe("starting\n");
+      writeFileSync(unblockFile, "");
+      expect(await getChunk(jsiProcess.process.stderr)).toBe("stopping\n");
+    });
+
+    it("reads from stdin lazily", async () => {
+      const jsiProcess = runFileAsync(
+        "test-scripts/blockingWithStdinToStdout.js"
+      );
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      jsiProcess.process.stdin.write("first");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("first\n");
+      jsiProcess.process.stdin.write("second");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("second\n");
+      jsiProcess.process.stdin.end();
+    });
+  });
+
   describe("flow", () => {
-    it("allows type annotations", () => {
-      const outcome = run(`#!/usr/bin/env jsi
+    it("allows type annotations", async () => {
+      const outcome = await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
 const x: number = 42;
 console.log('foo');
-    `);
+    `
+      );
       expect(outcome.exitCode).toBe(0);
       expect(outcome.stdout).toBe("foo\n");
     });
 
-    it("does not output anything to stderr when cache is warm", () => {
-      run(`#!/usr/bin/env jsi
+    it("does not output anything to stderr when cache is warm", async () => {
+      await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
   console.error('error output');
-      `);
-      const outcome = run(`#!/usr/bin/env jsi
+      `
+      );
+      const outcome = await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
   console.error('error output');
-      `);
+      `
+      );
       expect(outcome.stderr).toBe("error output\n");
     });
 
     describe("when there's type errors", () => {
-      it("outputs the type error to stderr", () => {
-        const outcome = run(`#!/usr/bin/env jsi
+      it("outputs the type error to stderr", async () => {
+        const outcome = await runSync(
+          testTempDir,
+          `#!/usr/bin/env jsi
 const x: string = 42;
-      `);
+      `
+        );
         expect(outcome.stderr).toContain(
           "Cannot assign `42` to `x` because number [1] is incompatible with string [2]."
         );
         expect(outcome.stderr).toContain("string");
       });
 
-      it("relays flow's exit code", () => {
-        const outcome = run(`#!/usr/bin/env jsi
+      it("relays flow's exit code", async () => {
+        const outcome = await runSync(
+          testTempDir,
+          `#!/usr/bin/env jsi
 const x: string = 42;
-      `);
+      `
+        );
         expect(outcome.exitCode).toBe(2);
       });
 
-      it("does not run the script", () => {
-        const outcome = run(`#!/usr/bin/env jsi
+      it("does not run the script", async () => {
+        const outcome = await runSync(
+          testTempDir,
+          `#!/usr/bin/env jsi
 const x: string = 42;
 console.log('foo');
-      `);
+      `
+        );
         expect(outcome.stdout).not.toBe("foo\n");
       });
     });
   });
 
   describe("babel", () => {
-    it("allows import statements", () => {
-      const outcome = run(`#!/usr/bin/env jsi
+    it("allows import statements", async () => {
+      const outcome = await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
 import { execSync } from 'child_process';
 console.log(execSync('echo foo').toString());
-      `);
+      `
+      );
       expect(outcome.stdout).toBe("foo\n\n");
     });
   });

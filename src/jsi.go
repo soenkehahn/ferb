@@ -126,12 +126,9 @@ func runBabelNode() {
 		homeDir+"/.jsi/project/node_modules/.bin/babel-node",
 		args...)
 	command.Env = append(os.Environ(), "NODE_PATH="+homeDir+"/.jsi/project/node_modules")
-	var stdout bytes.Buffer
-	command.Stdout = &stdout
-	var stderr bytes.Buffer
-	command.Stderr = &stderr
+	command.Stdin = os.Stdin
+	command.Stdout = os.Stdout
+	command.Stderr = os.Stderr
 	err := command.Run()
-	os.Stdout.WriteString(stdout.String())
-	os.Stderr.WriteString(stderr.String())
 	handleErrorCode(err, func() {})
 }
