@@ -10,6 +10,6 @@ jobs:
       - run: n latest
       - run: yarn install
       - run: yarn flow
-      - run: ./build/build.sh
+      - run: ./build/buildWithGo.sh
       - run: ./slow-tests.sh
       - run: PATH=./dist/bin:$PATH ./examples/runExamples.sh

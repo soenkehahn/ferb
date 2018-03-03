@@ -2,7 +2,7 @@
 
 set -o errexit
 
-./build.sh
+./buildWithDocker.sh
 
 if [ -z "$1" ]; then
   PREFIX=/usr/local
