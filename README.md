@@ -10,7 +10,7 @@ console.log(x);
 
 ## How to install
 
-You need `go` and `upx`. Then run
+You need `docker`.
 
 `./install.sh $PREFIX`
 
@@ -20,6 +20,19 @@ To actually run `jsi` to execute scripts, you need have `node` and `yarn` instal
 
 ## How to run the tests
 
-You need `node` and `yarn`. Then run
+### Dependencies
 
-`yarn && flow && ./slow-tests.sh`
+* `node-9.5.0`
+* `yarn`
+* `go-1.8`
+* `upx`
+
+### Running the tests
+
+`yarn install && flow && ./slow-tests.sh`
+
+### Running the tests faster
+
+During development, you can run the tests with `jest` (and `jest --watch`), but
+this will not clear `~/.jsi` between tests. So the tests will not be properly
+isolated.

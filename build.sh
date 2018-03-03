@@ -1,13 +1,6 @@
-#!/usr/bin/env bash
+!#/usr/bin/env bash
 
-set -o errexit
+set -eux
 
-if !(go version | grep --quiet go1.8); then
-  echo go version not supported
-  exit 1
-fi
-
-mkdir -p dist/bin
-go build -o dist/bin/jsi src/jsi.go
-upx dist/bin/jsi
-echo compiled jsi
+docker build --tag jsi-builder build
+docker run --rm --volume $(pwd):/root/jsi jsi-builder

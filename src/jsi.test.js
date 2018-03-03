@@ -78,7 +78,7 @@ async function runSync(
 jest.setTimeout(40000);
 
 beforeAll(() => {
-  execSync("./build.sh");
+  execSync("./build/build.sh");
 });
 
 beforeEach(() => {
