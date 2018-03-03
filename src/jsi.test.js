@@ -1,7 +1,7 @@
 // @flow
 
 import { execSync, spawn, spawnSync, type ChildProcess } from "child_process";
-import { writeFileSync } from "fs";
+import { readFileSync, writeFileSync } from "fs";
 import tmp from "tmp";
 
 function syncStream(stream: stream$Readable): Promise<string> {
@@ -152,6 +152,27 @@ console.error('error output');
     expect(outcome.stderr).toContain("error output\n");
   });
 
+  it("relays stdin to the executed script", async () => {
+    const jsiProcess = runAsync(
+      testTempDir,
+      `#!/usr/bin/env jsi
+new Promise(resolve => {
+  process.stdin.on("data", data => {
+    console.log(data.toString());
+  })
+  process.stdin.on("end", () => {
+    resolve();
+  })
+})`
+    );
+    jsiProcess.process.stderr.on("data", data =>
+      console.error(data.toString())
+    );
+    jsiProcess.process.stdin.write("input");
+    jsiProcess.process.stdin.end();
+    expect(await syncStream(jsiProcess.process.stdout)).toBe("input\n");
+  });
+
   describe("command line arguments", () => {
     it("passes in a command line argument", async () => {
       const outcome = await runSync(
@@ -186,6 +207,74 @@ console.log(process.argv[1]);
     `
       );
       expect(outcome.stdout).toBe(outcome.scriptFile + "\n");
+    });
+  });
+
+  describe("streaming", () => {
+    function getChunk(stream: stream$Readable): Promise<string> {
+      return new Promise(resolve => {
+        stream.on("data", data => {
+          resolve(data.toString());
+        });
+      });
+    }
+
+    let unblockFile;
+    beforeEach(() => {
+      unblockFile = testTempDir + "/unblock";
+      process.env["UNBLOCK_FILE"] = unblockFile;
+    });
+
+    afterEach(() => {
+      delete process.env["UNBLOCK_FILE"];
+    });
+
+    function runFileAsync(file) {
+      return runAsync(testTempDir, readFileSync(file).toString());
+    }
+
+    async function warmCache() {
+      await runSync(
+        testTempDir,
+        `#!/usr/bin/env jsi
+console.log('hello world');
+    `
+      );
+    }
+
+    it("writes to stdout lazily", async () => {
+      const jsiProcess = runFileAsync("test-scripts/blockingWithStdout.js");
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("starting\n");
+      writeFileSync(unblockFile, "");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("stopping\n");
+    });
+
+    it("writes to stderr lazily", async () => {
+      await warmCache();
+      const jsiProcess = runFileAsync("test-scripts/blockingWithStderr.js");
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      expect(await getChunk(jsiProcess.process.stderr)).toBe("starting\n");
+      writeFileSync(unblockFile, "");
+      expect(await getChunk(jsiProcess.process.stderr)).toBe("stopping\n");
+    });
+
+    it("reads from stdin lazily", async () => {
+      const jsiProcess = runFileAsync(
+        "test-scripts/blockingWithStdinToStdout.js"
+      );
+      jsiProcess.process.stderr.on("data", data =>
+        console.error(data.toString())
+      );
+      jsiProcess.process.stdin.write("first");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("first\n");
+      jsiProcess.process.stdin.write("second");
+      expect(await getChunk(jsiProcess.process.stdout)).toBe("second\n");
+      jsiProcess.process.stdin.end();
     });
   });
 
