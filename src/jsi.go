@@ -42,13 +42,9 @@ func runInProject(installCommand *exec.Cmd) {
 		log.Fatal("mkdir fixme")
 	}
 	installCommand.Dir = homeDir + "/.jsi/project"
-	var stdout bytes.Buffer
-	installCommand.Stdout = &stdout
-	var stderr bytes.Buffer
-	installCommand.Stderr = &stderr
+	installCommand.Stdout = os.Stderr
+	installCommand.Stderr = os.Stderr
 	err := installCommand.Run()
-	os.Stderr.WriteString(stdout.String())
-	os.Stderr.WriteString(stderr.String())
 	if err != nil {
 		log.Fatal(err)
 	}
