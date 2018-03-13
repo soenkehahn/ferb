@@ -106,8 +106,7 @@ describe("jsi executable", () => {
     const outcome = await runSync(
       testTempDir,
       `#!/usr/bin/env jsi
-console.log('hello world');
-    `
+      console.log('hello world');`
     );
     expect(outcome.stdout).toBe("hello world\n");
   });
@@ -116,8 +115,7 @@ console.log('hello world');
     const outcome = await runSync(
       testTempDir,
       `#!/usr/bin/env jsi
-console.log('hello world');
-    `
+      console.log('hello world');`
     );
     expect(outcome.exitCode).toBe(0);
   });
@@ -126,8 +124,7 @@ console.log('hello world');
     const outcome = await runSync(
       testTempDir,
       `#!/usr/bin/env jsi
-throw new Error('foo');
-    `
+      throw new Error('foo');`
     );
     expect(outcome.exitCode).toBe(1);
   });
@@ -136,8 +133,7 @@ throw new Error('foo');
     const outcome = await runSync(
       testTempDir,
       `#!/usr/bin/env jsi
-process.exit(42);
-    `
+      process.exit(42);`
     );
     expect(outcome.exitCode).toBe(42);
   });
@@ -146,8 +142,7 @@ process.exit(42);
     const outcome = await runSync(
       testTempDir,
       `#!/usr/bin/env jsi
-console.error('error output');
-    `
+      console.error('error output');`
     );
     expect(outcome.stderr).toContain("error output\n");
   });
@@ -156,14 +151,14 @@ console.error('error output');
     const jsiProcess = runAsync(
       testTempDir,
       `#!/usr/bin/env jsi
-new Promise(resolve => {
-  process.stdin.on("data", data => {
-    console.log(data.toString());
-  })
-  process.stdin.on("end", () => {
-    resolve();
-  })
-})`
+      new Promise(resolve => {
+        process.stdin.on("data", data => {
+          console.log(data.toString());
+        })
+        process.stdin.on("end", () => {
+          resolve();
+        })
+      })`
     );
     jsiProcess.process.stderr.on("data", data =>
       console.error(data.toString())
@@ -178,9 +173,8 @@ new Promise(resolve => {
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-const arg = process.argv.splice(2)[0];
-console.log(arg);
-    `,
+        const arg = process.argv.splice(2)[0];
+        console.log(arg);`,
         ["foo"]
       );
       expect(outcome.stdout).toBe("foo\n");
@@ -191,9 +185,8 @@ console.log(arg);
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-const arg = process.argv.splice(2);
-console.log(arg.join(' '));
-    `,
+        const arg = process.argv.splice(2);
+        console.log(arg.join(' '));`,
         args
       );
       expect(outcome.stdout).toBe(args.join(" ") + "\n");
@@ -203,8 +196,7 @@ console.log(arg.join(' '));
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-console.log(process.argv[1]);
-    `
+        console.log(process.argv[1]);`
       );
       expect(outcome.stdout).toBe(outcome.scriptFile + "\n");
     });
@@ -237,8 +229,7 @@ console.log(process.argv[1]);
       await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-console.log('hello world');
-    `
+        console.log('hello world');`
       );
     }
 
@@ -283,9 +274,8 @@ console.log('hello world');
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-const x: number = 42;
-console.log('foo');
-    `
+        const x: number = 42;
+        console.log('foo');`
       );
       expect(outcome.exitCode).toBe(0);
       expect(outcome.stdout).toBe("foo\n");
@@ -295,14 +285,12 @@ console.log('foo');
       await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-  console.error('error output');
-      `
+        console.error('error output');`
       );
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-  console.error('error output');
-      `
+        console.error('error output');`
       );
       expect(outcome.stderr).toBe("error output\n");
     });
@@ -312,8 +300,7 @@ console.log('foo');
         const outcome = await runSync(
           testTempDir,
           `#!/usr/bin/env jsi
-const x: string = 42;
-      `
+          const x: string = 42;`
         );
         expect(outcome.stderr).toContain(
           "Cannot assign `42` to `x` because number [1] is incompatible with string [2]."
@@ -325,8 +312,7 @@ const x: string = 42;
         const outcome = await runSync(
           testTempDir,
           `#!/usr/bin/env jsi
-const x: string = 42;
-      `
+          const x: string = 42;`
         );
         expect(outcome.exitCode).toBe(2);
       });
@@ -335,9 +321,8 @@ const x: string = 42;
         const outcome = await runSync(
           testTempDir,
           `#!/usr/bin/env jsi
-const x: string = 42;
-console.log('foo');
-      `
+          const x: string = 42;
+          console.log('foo');`
         );
         expect(outcome.stdout).not.toBe("foo\n");
       });
@@ -349,9 +334,8 @@ console.log('foo');
       const outcome = await runSync(
         testTempDir,
         `#!/usr/bin/env jsi
-import { execSync } from 'child_process';
-console.log(execSync('echo foo').toString());
-      `
+        import { execSync } from 'child_process';
+        console.log(execSync('echo foo').toString());`
       );
       expect(outcome.stdout).toBe("foo\n\n");
     });
