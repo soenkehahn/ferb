@@ -27,6 +27,20 @@ func doesExistInHome(path string) bool {
 	}
 }
 
+func writeString(path string, contents string) {
+	file, createErr := os.Create(path)
+	if createErr != nil {
+		log.Fatal(createErr)
+	}
+	defer file.Close()
+
+	_, writeErr := file.WriteString(contents)
+	if writeErr != nil {
+		log.Fatal(writeErr)
+	}
+	file.Sync()
+}
+
 func main() {
 	setupProject()
 
@@ -55,16 +69,23 @@ func setupProject() {
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/babel-node"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/flow"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/babel-preset-env"))
+	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/recouple"))
 	if runSetup {
 		runInProject(exec.Command("yarn", "add",
 			"babel-cli",
 			"flow-bin",
 			"babel-preset-env",
-			"babel-plugin-transform-flow-strip-types"))
+			"babel-plugin-transform-flow-strip-types",
+			"recouple"))
 	}
-	if !doesExistInHome(".jsi/project/.flowconfig") {
-		runInProject(exec.Command("node_modules/.bin/flow", "init"))
+	flowConfigPath := getHomeDir() + "/.jsi/project/.flowconfig"
+	lines := []string{
+		"[options]",
+		"module.name_mapper='^recouple$' -> '" +
+			getHomeDir() +
+			"/.jsi/project/node_modules/recouple'",
 	}
+	writeString(flowConfigPath, strings.Join(lines, "\n")+"\n")
 }
 
 func readFile(file string) string {
