@@ -65,25 +65,35 @@ func runInProject(installCommand *exec.Cmd) {
 }
 
 func setupProject() {
+	pkgs := []string{
+		"recouple",
+		"recouple-fetch",
+	}
+
 	runSetup := false
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/babel-node"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/flow"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/babel-preset-env"))
-	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/recouple"))
+	for _, pkg := range pkgs {
+		runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/" + pkg))
+	}
 	if runSetup {
-		runInProject(exec.Command("yarn", "add",
+		args := []string{
+			"add",
 			"babel-cli",
 			"flow-bin",
 			"babel-preset-env",
 			"babel-plugin-transform-flow-strip-types",
-			"recouple"))
+		}
+		args = append(args, pkgs...)
+		runInProject(exec.Command("yarn", args...))
 	}
 	flowConfigPath := getHomeDir() + "/.jsi/project/.flowconfig"
-	lines := []string{
-		"[options]",
-		"module.name_mapper='^recouple$' -> '" +
-			getHomeDir() +
-			"/.jsi/project/node_modules/recouple'",
+	lines := []string{"[options]"}
+	for _, pkg := range pkgs {
+		optionLine := "module.name_mapper='^" + pkg + "$' -> '" +
+			getHomeDir() + "/.jsi/project/node_modules/" + pkg + "'"
+		lines = append(lines, optionLine)
 	}
 	writeString(flowConfigPath, strings.Join(lines, "\n")+"\n")
 }

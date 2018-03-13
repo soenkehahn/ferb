@@ -41,4 +41,14 @@ describe("jsi executable", () => {
     );
     expectToBeSuccessful(outcome);
   });
+
+  it("allows to use recouple-fetch", async () => {
+    const outcome = await runSync(
+      testTempDir,
+      `#!/usr/bin/env jsi
+      import * as RecoupleFetch from "recouple-fetch";
+      console.log(typeof RecoupleFetch.safeGet);`
+    );
+    expectToBeSuccessful(outcome);
+  });
 });
