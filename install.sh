@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -o errexit
+set -o xtrace
 
 docker build --tag jsi-builder --file build/Dockerfile .
 INSTALL_GOOS=$(uname | awk '{print tolower($0)}')
