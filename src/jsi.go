@@ -88,14 +88,16 @@ func setupProject() {
 		args = append(args, pkgs...)
 		runInProject(exec.Command("yarn", args...))
 	}
-	flowConfigPath := getHomeDir() + "/.jsi/project/.flowconfig"
-	lines := []string{"[options]"}
-	for _, pkg := range pkgs {
-		optionLine := "module.name_mapper='^" + pkg + "$' -> '" +
-			getHomeDir() + "/.jsi/project/node_modules/" + pkg + "'"
-		lines = append(lines, optionLine)
+	if !doesExistInHome(".jsi/project/.flowconfig") {
+		flowConfigPath := getHomeDir() + "/.jsi/project/.flowconfig"
+		lines := []string{"[options]"}
+		for _, pkg := range pkgs {
+			optionLine := "module.name_mapper='^" + pkg + "$' -> '" +
+				getHomeDir() + "/.jsi/project/node_modules/" + pkg + "'"
+			lines = append(lines, optionLine)
+		}
+		writeString(flowConfigPath, strings.Join(lines, "\n")+"\n")
 	}
-	writeString(flowConfigPath, strings.Join(lines, "\n")+"\n")
 }
 
 func readFile(file string) string {
