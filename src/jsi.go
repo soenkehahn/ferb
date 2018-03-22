@@ -27,6 +27,20 @@ func doesExistInHome(path string) bool {
 	}
 }
 
+func writeString(path string, contents string) {
+	file, createErr := os.Create(path)
+	if createErr != nil {
+		log.Fatal(createErr)
+	}
+	defer file.Close()
+
+	_, writeErr := file.WriteString(contents)
+	if writeErr != nil {
+		log.Fatal(writeErr)
+	}
+	file.Sync()
+}
+
 func main() {
 	setupProject()
 
@@ -51,19 +65,38 @@ func runInProject(installCommand *exec.Cmd) {
 }
 
 func setupProject() {
+	pkgs := []string{
+		"recouple",
+		"recouple-fetch",
+	}
+
 	runSetup := false
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/babel-node"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/.bin/flow"))
 	runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/babel-preset-env"))
+	for _, pkg := range pkgs {
+		runSetup = runSetup || (!doesExistInHome(".jsi/project/node_modules/" + pkg))
+	}
 	if runSetup {
-		runInProject(exec.Command("yarn", "add",
+		args := []string{
+			"add",
 			"babel-cli",
 			"flow-bin",
 			"babel-preset-env",
-			"babel-plugin-transform-flow-strip-types"))
+			"babel-plugin-transform-flow-strip-types",
+		}
+		args = append(args, pkgs...)
+		runInProject(exec.Command("yarn", args...))
 	}
 	if !doesExistInHome(".jsi/project/.flowconfig") {
-		runInProject(exec.Command("node_modules/.bin/flow", "init"))
+		flowConfigPath := getHomeDir() + "/.jsi/project/.flowconfig"
+		lines := []string{"[options]"}
+		for _, pkg := range pkgs {
+			optionLine := "module.name_mapper='^" + pkg + "$' -> '" +
+				getHomeDir() + "/.jsi/project/node_modules/" + pkg + "'"
+			lines = append(lines, optionLine)
+		}
+		writeString(flowConfigPath, strings.Join(lines, "\n")+"\n")
 	}
 }
 
